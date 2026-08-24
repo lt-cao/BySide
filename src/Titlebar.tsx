@@ -4,6 +4,9 @@ import { CloseIcon, MaximizeIcon, MinimizeIcon } from "./icons";
 const hasTauriRuntime = () => "__TAURI_INTERNALS__" in window;
 const isMacOS = navigator.userAgent.toLowerCase().includes("mac");
 
+document.documentElement.classList.toggle("platform-macos", isMacOS);
+document.documentElement.classList.toggle("platform-windows", !isMacOS);
+
 function WindowControls() {
   return (
     <div className="window-controls" aria-label="Điều khiển cửa sổ">
@@ -27,7 +30,6 @@ function WindowControls() {
 export function Titlebar() {
   return (
     <header className={`titlebar ${isMacOS ? "macos" : "windows"}`} data-tauri-drag-region>
-      {isMacOS && <WindowControls />}
       <div className="app-identity" data-tauri-drag-region>
         <img src="/app-icon.png" alt="" aria-hidden="true" />
         <span data-tauri-drag-region>BySide</span>

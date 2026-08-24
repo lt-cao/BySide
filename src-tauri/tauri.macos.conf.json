@@ -1,4 +1,31 @@
 {
+  "app": {
+    "macOSPrivateApi": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "BySide",
+        "width": 1180,
+        "height": 760,
+        "minWidth": 760,
+        "minHeight": 480,
+        "center": true,
+        "decorations": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": { "x": 13, "y": 18 },
+        "transparent": true,
+        "shadow": true,
+        "dragDropEnabled": true,
+        "backgroundColor": "#00000000",
+        "windowEffects": {
+          "effects": ["underWindowBackground"],
+          "state": "followsWindowActiveState",
+          "radius": 12
+        }
+      }
+    ]
+  },
   "bundle": {
     "targets": ["dmg"],
     "fileAssociations": [
