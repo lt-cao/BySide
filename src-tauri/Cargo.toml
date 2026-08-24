@@ -14,14 +14,11 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
-tauri = { version = "2", features = ["protocol-asset"] }
+tauri = { version = "2", features = ["protocol-asset", "macos-private-api"] }
 tauri-plugin-dialog = "2"
 image = { version = "0.25", default-features = false, features = [
   "bmp", "gif", "ico", "jpeg", "png", "tiff", "webp"
 ] }
-
-[target.'cfg(target_os = "macos")'.dependencies]
-tauri = { version = "2", features = ["macos-private-api"] }
 
 [profile.release]
 panic = "abort"
