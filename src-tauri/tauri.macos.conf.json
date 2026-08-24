@@ -1,0 +1,17 @@
+{
+  "bundle": {
+    "targets": ["dmg"],
+    "fileAssociations": [
+      {
+        "ext": ["png", "jpg", "jpeg", "webp", "gif", "bmp", "tif", "tiff", "ico"],
+        "name": "Image",
+        "role": "Viewer",
+        "rank": "Alternate"
+      }
+    ],
+    "macOS": {
+      "minimumSystemVersion": "10.13",
+      "signingIdentity": "-"
+    }
+  }
+}
