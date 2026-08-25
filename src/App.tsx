@@ -457,8 +457,6 @@ export default function App() {
               unit={rulerUnit}
               visible={rulerVisible}
             />
-            {images[0] && <span className="comparison-label before">Before</span>}
-            {images[1] && <span className="comparison-label after">After</span>}
             <div
               className="comparison-scrubber"
               role="slider"

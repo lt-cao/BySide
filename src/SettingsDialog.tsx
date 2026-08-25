@@ -21,7 +21,7 @@ type UpdateState =
   | { kind: "error"; message: string };
 
 const RELEASE_API = "https://api.github.com/repos/lt-cao/BySide/releases/latest";
-const FALLBACK_VERSION = "1.3.3";
+const FALLBACK_VERSION = "1.3.4";
 
 function installerUrl(release: GitHubRelease) {
   const macOS = navigator.userAgent.toLowerCase().includes("mac");

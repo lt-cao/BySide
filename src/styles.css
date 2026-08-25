@@ -153,28 +153,6 @@ button { color: inherit; }
 .overlay-stage > .overlay-before { z-index: 2; }
 .overlay-stage > .ruler-canvas { z-index: 8; }
 
-.comparison-label {
-  position: absolute;
-  z-index: 14;
-  top: 68px;
-  padding: 5px 9px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 999px;
-  background: rgba(25, 25, 27, 0.68);
-  color: rgba(255, 255, 255, 0.82);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.24);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  pointer-events: none;
-}
-
-.comparison-label.before { left: 14px; }
-.comparison-label.after { right: 14px; }
-
 .comparison-scrubber {
   position: absolute;
   z-index: 24;
