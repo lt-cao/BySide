@@ -1,6 +1,6 @@
 [package]
 name = "byside"
-version = "1.3.4"
+version = "1.4.0"
 description = "Compare two images side by side"
 authors = ["Cao Le"]
 edition = "2021"
@@ -14,9 +14,12 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 tauri = { version = "2", features = ["protocol-asset", "macos-private-api"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
+tauri-plugin-process = "2"
+tauri-plugin-updater = "2"
 image = { version = "0.25", default-features = false, features = [
   "bmp", "gif", "ico", "jpeg", "png", "tiff", "webp"
 ] }

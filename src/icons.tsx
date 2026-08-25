@@ -27,6 +27,22 @@ export function ResetIcon(props: IconProps) {
   return <svg {...base} {...props}><path d="M3.4 6.3A6.3 6.3 0 1 1 3 11.7"/><path d="M2.4 2.8v4.1h4.1"/></svg>;
 }
 
+export function ReloadIcon(props: IconProps) {
+  return <svg {...base} {...props}><path d="M14.8 6.5A6 6 0 1 0 15 11.2"/><path d="M15 2.7v4h-4"/></svg>;
+}
+
+export function FolderIcon(props: IconProps) {
+  return <svg {...base} {...props}><path d="M2 5.2h5l1.5 1.7H16v7.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 2 14.4Z"/><path d="M2 7V4.8a1.4 1.4 0 0 1 1.4-1.4h3L8 5.2"/></svg>;
+}
+
+export function OpenWithIcon(props: IconProps) {
+  return <svg {...base} {...props}><path d="M8 3H3.5A1.5 1.5 0 0 0 2 4.5v10A1.5 1.5 0 0 0 3.5 16h10a1.5 1.5 0 0 0 1.5-1.5V10"/><path d="M10.2 2H16v5.8M15.7 2.3 8 10"/></svg>;
+}
+
+export function SettingsIcon(props: IconProps) {
+  return <svg {...base} {...props}><circle cx="9" cy="9" r="2.5"/><path d="M7.6 2.2h2.8l.5 2a5.3 5.3 0 0 1 1.3.8l2-.6 1.4 2.4-1.5 1.4a5 5 0 0 1 0 1.6l1.5 1.4-1.4 2.4-2-.6a5.3 5.3 0 0 1-1.3.8l-.5 2H7.6l-.5-2a5.3 5.3 0 0 1-1.3-.8l-2 .6-1.4-2.4 1.5-1.4a5 5 0 0 1 0-1.6L2.4 6.8l1.4-2.4 2 .6a5.3 5.3 0 0 1 1.3-.8Z"/></svg>;
+}
+
 export function ImageAddIcon(props: IconProps) {
   return <svg viewBox="0 0 48 48" aria-hidden="true" {...props}><rect x="6" y="9" width="29" height="28" rx="3"/><circle cx="16" cy="18" r="3"/><path d="m9 33 9-9 6 6 4-4 7 7M39 12v12M33 18h12"/></svg>;
 }

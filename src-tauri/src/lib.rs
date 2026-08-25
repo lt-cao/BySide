@@ -3,6 +3,7 @@ use serde::Serialize;
 use std::fs;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::sync::Mutex;
 use tauri::{Manager, State};
 
@@ -94,6 +95,64 @@ fn inspect_image_path(path: &str) -> Result<ImageMetadata, String> {
 fn take_opened_files(state: State<'_, PendingOpenFiles>) -> Vec<String> {
     let mut paths = state.0.lock().unwrap_or_else(|error| error.into_inner());
     std::mem::take(&mut *paths)
+}
+
+#[tauri::command]
+fn open_with_other_app(path: String) -> Result<(), String> {
+    let path = validated_image_path(&path)?;
+
+    #[cfg(target_os = "macos")]
+    {
+        let chooser = Command::new("osascript")
+            .args([
+                "-e",
+                "set chosenApp to choose file with prompt \"Chọn ứng dụng để mở ảnh\" of type \"com.apple.application-bundle\" default location path to applications folder",
+                "-e",
+                "return POSIX path of chosenApp",
+            ])
+            .output()
+            .map_err(|_| "Không thể mở danh sách ứng dụng.".to_string())?;
+
+        if !chooser.status.success() {
+            let message = String::from_utf8_lossy(&chooser.stderr);
+            return if message.contains("-128") {
+                Ok(())
+            } else {
+                Err("Không thể chọn ứng dụng khác.".to_string())
+            };
+        }
+
+        let application = String::from_utf8_lossy(&chooser.stdout).trim().to_string();
+        if application.is_empty() {
+            return Ok(());
+        }
+        Command::new("open")
+            .arg("-a")
+            .arg(application)
+            .arg(path)
+            .spawn()
+            .map_err(|_| "Không thể mở ảnh bằng ứng dụng đã chọn.".to_string())?;
+        return Ok(());
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        Command::new("rundll32.exe")
+            .arg("shell32.dll,OpenAs_RunDLL")
+            .arg(path)
+            .spawn()
+            .map_err(|_| "Không thể mở danh sách ứng dụng.".to_string())?;
+        return Ok(());
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        Command::new("xdg-open")
+            .arg(path)
+            .spawn()
+            .map_err(|_| "Không thể mở ảnh bằng ứng dụng khác.".to_string())?;
+        Ok(())
+    }
 }
 
 fn color_space(color: ColorType) -> &'static str {
@@ -368,8 +427,14 @@ pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(PendingOpenFiles::default())
-        .invoke_handler(tauri::generate_handler![inspect_image, take_opened_files])
+        .invoke_handler(tauri::generate_handler![
+            inspect_image,
+            take_opened_files,
+            open_with_other_app
+        ])
         .build(tauri::generate_context!())
         .expect("error while building Tauri application");
 

@@ -3,6 +3,7 @@ import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { open } from "@tauri-apps/plugin-dialog";
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import {
   clamp,
   clampTransform,
@@ -15,6 +16,7 @@ import {
   zoomAtPoint
 } from "./core";
 import { ImagePanel } from "./ImagePanel";
+import { FolderIcon, OpenWithIcon, ReloadIcon, SettingsIcon } from "./icons";
 import { RulerCanvas } from "./RulerCanvas";
 import { SettingsDialog } from "./SettingsDialog";
 import { Titlebar } from "./Titlebar";
@@ -80,7 +82,7 @@ export default function App() {
   const [zoomCursor, setZoomCursor] = useState(false);
   const [zoomOut, setZoomOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; index: 0 | 1 } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const setTransform = useCallback((next: ViewTransform) => {
@@ -109,7 +111,7 @@ export default function App() {
     try {
       setError(null);
       const metadata = await invoke<ImageMetadata>("inspect_image", { path });
-      const url = convertFileSrc(path);
+      const url = `${convertFileSrc(path)}?reload=${Date.now()}`;
       const preview = await createLargeImagePreview(url, metadata);
       replaceImage(index, { ...metadata, path, url, preview });
     } catch (reason) {
@@ -128,9 +130,27 @@ export default function App() {
   useEffect(() => {
     const openContextMenu = (event: MouseEvent) => {
       event.preventDefault();
+      const panel = event.target instanceof Element
+        ? event.target.closest<HTMLElement>(".image-panel")
+        : null;
+      let index: 0 | 1 = panel?.id === "rightPanel" ? 1 : 0;
+      if (overlayModeRef.current) {
+        const bounds = leftPanelRef.current?.getBoundingClientRect();
+        if (bounds) {
+          index = overlayPanelAtPoint(
+            { x: event.clientX, y: event.clientY },
+            bounds,
+            comparisonPositionRef.current
+          );
+        }
+      }
+      if (!imagesRef.current[index] && imagesRef.current[index === 0 ? 1 : 0]) {
+        index = index === 0 ? 1 : 0;
+      }
       setContextMenu({
-        x: Math.min(event.clientX, window.innerWidth - 170),
-        y: Math.min(event.clientY, window.innerHeight - 52)
+        x: Math.min(event.clientX, window.innerWidth - 208),
+        y: Math.min(event.clientY, window.innerHeight - 172),
+        index
       });
     };
     const closeContextMenu = () => setContextMenu(null);
@@ -385,6 +405,32 @@ export default function App() {
     setError(`Không thể hiển thị ảnh “${current.fileName}”. Hãy chọn lại file.`);
   }, []);
 
+  const reloadImages = useCallback(async () => {
+    const paths = imagesRef.current
+      .map((image, index) => image ? { index, path: image.path } : null)
+      .filter((item): item is { index: number; path: string } => item !== null);
+    if (!paths.length) return;
+    await Promise.all(paths.map(({ index, path }) => loadPath(index, path)));
+  }, [loadPath]);
+
+  const revealImage = useCallback(async (image: LoadedImage | null) => {
+    if (!image) return;
+    try {
+      await revealItemInDir(image.path);
+    } catch {
+      setError("Không thể mở thư mục chứa ảnh.");
+    }
+  }, []);
+
+  const openImageWith = useCallback(async (image: LoadedImage | null) => {
+    if (!image) return;
+    try {
+      await invoke("open_with_other_app", { path: image.path });
+    } catch (reason) {
+      setError(typeof reason === "string" ? reason : "Không thể mở ảnh bằng ứng dụng khác.");
+    }
+  }, []);
+
   const panelProps = {
     transform,
     rulerVisible,
@@ -510,11 +556,35 @@ export default function App() {
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onPointerDown={(event) => event.stopPropagation()}
         >
+          <button type="button" role="menuitem" disabled={!images.some(Boolean)} onClick={() => {
+            setContextMenu(null);
+            void reloadImages();
+          }}>
+            <ReloadIcon />
+            Tải lại ảnh
+          </button>
+          <button type="button" role="menuitem" disabled={!images[contextMenu.index]} onClick={() => {
+            const image = images[contextMenu.index];
+            setContextMenu(null);
+            void revealImage(image);
+          }}>
+            <FolderIcon />
+            Mở thư mục ảnh
+          </button>
+          <button type="button" role="menuitem" disabled={!images[contextMenu.index]} onClick={() => {
+            const image = images[contextMenu.index];
+            setContextMenu(null);
+            void openImageWith(image);
+          }}>
+            <OpenWithIcon />
+            Mở bằng…
+          </button>
+          <div className="context-menu-separator" role="separator" />
           <button type="button" role="menuitem" onClick={() => {
             setContextMenu(null);
             setSettingsOpen(true);
           }}>
-            <span aria-hidden="true">⚙</span>
+            <SettingsIcon className="settings-menu-icon" />
             Cài đặt
           </button>
         </div>

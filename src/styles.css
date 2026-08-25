@@ -453,7 +453,7 @@ button { color: inherit; }
 .context-menu {
   position: fixed;
   z-index: 240;
-  width: 158px;
+  width: 196px;
   padding: 5px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 9px;
@@ -478,7 +478,34 @@ button { color: inherit; }
 }
 
 .context-menu button:hover { background: rgba(10, 132, 255, 0.9); }
-.context-menu button span { width: 15px; color: rgba(255, 255, 255, 0.78); text-align: center; }
+.context-menu button:disabled { color: rgba(255, 255, 255, 0.3); }
+.context-menu button:disabled:hover { background: transparent; }
+
+.context-menu button svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.45;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.context-menu button svg.settings-menu-icon {
+  width: 19px;
+  height: 19px;
+  flex-basis: 19px;
+  margin: -1.5px;
+  stroke-width: 1.35;
+}
+
+.context-menu-separator {
+  height: 1px;
+  margin: 4px 7px;
+  background: rgba(255, 255, 255, 0.11);
+}
 
 .settings-backdrop {
   position: fixed;
@@ -528,6 +555,7 @@ button { color: inherit; }
 }
 
 .settings-close:hover { background: rgba(255, 255, 255, 0.17); }
+.settings-close:disabled { opacity: 0.42; cursor: default; }
 
 .settings-section {
   display: flex;
@@ -541,6 +569,24 @@ button { color: inherit; }
 .settings-section h3 { font-size: 13px; }
 .settings-section p { margin: 6px 0 0; color: rgba(255, 255, 255, 0.62); font-size: 11px; line-height: 1.45; }
 .settings-section p.settings-error { color: #ffaaa3; }
+
+.settings-progress {
+  width: min(230px, 100%);
+  height: 5px;
+  margin-top: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.settings-progress span {
+  display: block;
+  height: 100%;
+  min-width: 5px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #0a84ff, #5eb4ff);
+  transition: width 120ms ease;
+}
 .settings-actions { flex: 0 0 auto; display: flex; flex-direction: column; gap: 7px; }
 
 .settings-actions button {
