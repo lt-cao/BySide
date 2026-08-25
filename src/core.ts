@@ -197,3 +197,13 @@ export function panelAtDropPoint(
     ? (point.x >= right.left ? 1 : 0)
     : (point.y >= right.top ? 1 : 0);
 }
+
+export function overlayPanelAtPoint(
+  point: { x: number; y: number },
+  bounds: RectLike,
+  positionPercent: number
+): 0 | 1 {
+  const dividerX = bounds.left
+    + (bounds.right - bounds.left) * clamp(positionPercent, 0, 100) / 100;
+  return point.x <= dividerX ? 0 : 1;
+}

@@ -4,15 +4,18 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { open } from "@tauri-apps/plugin-dialog";
 import {
+  clamp,
   clampTransform,
   dropEventPoint,
   nextImagePanel,
+  overlayPanelAtPoint,
   panelAtDropPoint,
   panelPoint,
   previewDimensions,
   zoomAtPoint
 } from "./core";
 import { ImagePanel } from "./ImagePanel";
+import { RulerCanvas } from "./RulerCanvas";
 import { SettingsDialog } from "./SettingsDialog";
 import { Titlebar } from "./Titlebar";
 import { Toolbar } from "./Toolbar";
@@ -46,6 +49,11 @@ function storedUnit(): RulerUnit {
   return value === "points" || value === "inches" || value === "centimeters" ? value : "pixels";
 }
 
+function storedComparisonPosition() {
+  const value = Number(localStorage.getItem("comparisonPosition"));
+  return Number.isFinite(value) ? clamp(value, 0, 100) : 50;
+}
+
 export default function App() {
   const workspaceRef = useRef<HTMLElement>(null);
   const leftPanelRef = useRef<HTMLElement>(null);
@@ -53,6 +61,9 @@ export default function App() {
   const imagesRef = useRef<Array<LoadedImage | null>>([null, null]);
   const transformRef = useRef<ViewTransform>(DEFAULT_TRANSFORM);
   const layoutRef = useRef<CompareLayout>(storedLayout());
+  const overlayModeRef = useRef(localStorage.getItem("isOverlayMode") === "true");
+  const comparisonPositionRef = useRef(storedComparisonPosition());
+  const overlayStageRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({ active: false, pointerId: -1, x: 0, y: 0, mode: "pan" as "pan" | "zoom" });
   const zKeyRef = useRef(false);
   const dropTargetRef = useRef<0 | 1 | null>(null);
@@ -60,6 +71,8 @@ export default function App() {
   const [images, setImages] = useState<Array<LoadedImage | null>>([null, null]);
   const [transform, setTransformState] = useState<ViewTransform>(DEFAULT_TRANSFORM);
   const [layout, setLayoutState] = useState<CompareLayout>(layoutRef.current);
+  const [overlayMode, setOverlayMode] = useState(overlayModeRef.current);
+  const [comparisonPosition, setComparisonPosition] = useState(comparisonPositionRef.current);
   const [rulerVisible, setRulerVisible] = useState(localStorage.getItem("isRulerVisible") === "true");
   const [rulerUnit, setRulerUnit] = useState<RulerUnit>(storedUnit());
   const [dropTarget, setDropTarget] = useState<number | null>(null);
@@ -194,7 +207,9 @@ export default function App() {
         window.devicePixelRatio,
         navigator.userAgent.toLowerCase().includes("mac")
       );
-      const detectedTarget = panelAtDropPoint(point, leftBounds, rightBounds, layoutRef.current);
+      const detectedTarget = overlayModeRef.current
+        ? overlayPanelAtPoint(point, leftBounds, comparisonPositionRef.current)
+        : panelAtDropPoint(point, leftBounds, rightBounds, layoutRef.current);
       const target = event.payload.type === "drop"
         ? (dropTargetRef.current ?? detectedTarget)
         : detectedTarget;
@@ -224,6 +239,12 @@ export default function App() {
   const focusAt = useCallback((clientX: number, clientY: number) => {
     const bounds = workspaceRef.current?.getBoundingClientRect();
     if (!bounds) return { x: 0, y: 0 };
+    if (overlayModeRef.current) {
+      return {
+        x: clamp(clientX - bounds.left, 0, bounds.width) - bounds.width / 2,
+        y: clamp(clientY - bounds.top, 0, bounds.height) - bounds.height / 2
+      };
+    }
     return panelPoint(
       { x: clientX - bounds.left, y: clientY - bounds.top },
       { width: bounds.width, height: bounds.height },
@@ -238,7 +259,7 @@ export default function App() {
   };
 
   const onPointerDown = (event: React.PointerEvent<HTMLElement>) => {
-    if (event.button !== 0 || (event.target as Element).closest(".toolbar, .empty-state, .window-controls")) return;
+    if (event.button !== 0 || (event.target as Element).closest(".toolbar, .empty-state, .window-controls, .comparison-scrubber")) return;
     dragRef.current = {
       active: true,
       pointerId: event.pointerId,
@@ -321,6 +342,30 @@ export default function App() {
     requestAnimationFrame(() => setTransform(clamped(transformRef.current)));
   };
 
+  const toggleOverlay = () => {
+    const next = !overlayModeRef.current;
+    overlayModeRef.current = next;
+    setOverlayMode(next);
+    localStorage.setItem("isOverlayMode", String(next));
+    requestAnimationFrame(() => setTransform(clamped(transformRef.current)));
+  };
+
+  const updateComparisonPosition = useCallback((clientX: number) => {
+    const bounds = overlayStageRef.current?.getBoundingClientRect();
+    if (!bounds || bounds.width <= 0) return;
+    const next = clamp((clientX - bounds.left) / bounds.width * 100, 0, 100);
+    comparisonPositionRef.current = next;
+    setComparisonPosition(next);
+    localStorage.setItem("comparisonPosition", String(next));
+  }, []);
+
+  const adjustComparisonPosition = useCallback((next: number) => {
+    const clampedPosition = clamp(next, 0, 100);
+    comparisonPositionRef.current = clampedPosition;
+    setComparisonPosition(clampedPosition);
+    localStorage.setItem("comparisonPosition", String(clampedPosition));
+  }, []);
+
   const reset = () => {
     imagesRef.current.forEach((image) => image?.preview?.close());
     imagesRef.current = [null, null];
@@ -356,7 +401,7 @@ export default function App() {
       <Titlebar />
       <main
         ref={workspaceRef}
-        className={`workspace ${layout === "sideBySide" ? "side-by-side" : "stacked"}`}
+        className={`workspace ${overlayMode ? "overlay" : layout === "sideBySide" ? "side-by-side" : "stacked"}`}
         onWheel={onWheel}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -367,10 +412,12 @@ export default function App() {
           images={images}
           scale={transform.scale}
           layout={layout}
+          overlayMode={overlayMode}
           rulerVisible={rulerVisible}
           rulerUnit={rulerUnit}
           onScale={(scale) => setTransform(clamped({ ...transformRef.current, scale }))}
           onLayout={changeLayout}
+          onOverlay={toggleOverlay}
           onRuler={() => {
             setRulerVisible((current) => {
               localStorage.setItem("isRulerVisible", String(!current));
@@ -383,9 +430,78 @@ export default function App() {
           }}
           onReset={reset}
         />
-        <ImagePanel index={0} panelRef={leftPanelRef} image={images[0]} dropTarget={dropTarget === 0} {...panelProps} />
-        <div className="divider" aria-hidden="true" />
-        <ImagePanel index={1} panelRef={rightPanelRef} image={images[1]} dropTarget={dropTarget === 1} {...panelProps} />
+        {overlayMode ? (
+          <div ref={overlayStageRef} className="overlay-stage">
+            <ImagePanel
+              index={1}
+              panelRef={rightPanelRef}
+              image={images[1]}
+              dropTarget={dropTarget === 1}
+              {...panelProps}
+              rulerVisible={false}
+              className="overlay-after"
+            />
+            <ImagePanel
+              index={0}
+              panelRef={leftPanelRef}
+              image={images[0]}
+              dropTarget={dropTarget === 0}
+              {...panelProps}
+              rulerVisible={false}
+              className="overlay-before"
+              style={{ clipPath: `inset(0 ${100 - comparisonPosition}% 0 0)` }}
+            />
+            <RulerCanvas
+              image={images[0] ?? images[1]}
+              transform={transform}
+              unit={rulerUnit}
+              visible={rulerVisible}
+            />
+            {images[0] && <span className="comparison-label before">Before</span>}
+            {images[1] && <span className="comparison-label after">After</span>}
+            <div
+              className="comparison-scrubber"
+              role="slider"
+              tabIndex={0}
+              aria-label="Vị trí so sánh Before và After"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(comparisonPosition)}
+              style={{ left: `${comparisonPosition}%` }}
+              onPointerDown={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                event.currentTarget.setPointerCapture(event.pointerId);
+                updateComparisonPosition(event.clientX);
+              }}
+              onPointerMove={(event) => {
+                if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                  updateComparisonPosition(event.clientX);
+                }
+              }}
+              onKeyDown={(event) => {
+                const step = event.shiftKey ? 5 : 1;
+                if (event.key === "ArrowLeft") adjustComparisonPosition(comparisonPositionRef.current - step);
+                else if (event.key === "ArrowRight") adjustComparisonPosition(comparisonPositionRef.current + step);
+                else if (event.key === "Home") adjustComparisonPosition(0);
+                else if (event.key === "End") adjustComparisonPosition(100);
+                else return;
+                event.preventDefault();
+              }}
+            >
+              <span className="comparison-line" />
+              <span className="comparison-handle" aria-hidden="true">
+                <span>◀</span><span>▶</span>
+              </span>
+            </div>
+          </div>
+        ) : (
+          <>
+            <ImagePanel index={0} panelRef={leftPanelRef} image={images[0]} dropTarget={dropTarget === 0} {...panelProps} />
+            <div className="divider" aria-hidden="true" />
+            <ImagePanel index={1} panelRef={rightPanelRef} image={images[1]} dropTarget={dropTarget === 1} {...panelProps} />
+          </>
+        )}
         <div className={`zoom-hint ${zoomCursor ? "visible" : ""}`}>Giữ Z và kéo để zoom · Alt để thu nhỏ</div>
         {error && <button className="error-toast" type="button" onClick={() => setError(null)}>{error}<span>×</span></button>}
       </main>

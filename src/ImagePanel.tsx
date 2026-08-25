@@ -16,6 +16,8 @@ interface ImagePanelProps {
   zoomOut: boolean;
   onPick: (index: number) => void;
   onImageError: (index: number, path: string) => void;
+  className?: string;
+  style?: CSSProperties;
 }
 
 function PreviewCanvas({ bitmap, style }: { bitmap: ImageBitmap; style: CSSProperties }) {
@@ -44,7 +46,9 @@ export function ImagePanel({
   zoomCursor,
   zoomOut,
   onPick,
-  onImageError
+  onImageError,
+  className,
+  style: panelStyle
 }: ImagePanelProps) {
   const classes = [
     "image-panel",
@@ -52,11 +56,18 @@ export function ImagePanel({
     dropTarget ? "drop-target" : "",
     dragging ? "dragging" : "",
     zoomCursor ? "zoom-cursor" : "",
-    zoomOut ? "zoom-out" : ""
+    zoomOut ? "zoom-out" : "",
+    className ?? ""
   ].filter(Boolean).join(" ");
 
   return (
-    <section ref={panelRef} id={index === 0 ? "leftPanel" : "rightPanel"} className={classes} aria-label={`Ảnh ${index + 1}`}>
+    <section
+      ref={panelRef}
+      id={index === 0 ? "leftPanel" : "rightPanel"}
+      className={classes}
+      style={panelStyle}
+      aria-label={`Ảnh ${index + 1}`}
+    >
       {!image && (
         <button className="empty-state" type="button" onClick={() => onPick(index)}>
           <ImageAddIcon />

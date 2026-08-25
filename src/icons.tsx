@@ -12,6 +12,13 @@ export function LayoutRowsIcon(props: IconProps) {
   return <svg {...base} {...props}><rect x="2" y="1.5" width="14" height="6.25" rx="1.2"/><rect x="2" y="10.25" width="14" height="6.25" rx="1.2"/></svg>;
 }
 
+export function BeforeAfterIcon(props: IconProps) {
+  return <svg {...base} {...props}>
+    <rect x="1.75" y="2" width="14.5" height="14" rx="2"/>
+    <path d="M9 2v14M6.7 7 4.8 9l1.9 2M11.3 7l1.9 2-1.9 2"/>
+  </svg>;
+}
+
 export function RulerIcon(props: IconProps) {
   return <svg {...base} {...props}><path d="M3.4 14.6 14.6 3.4a1.35 1.35 0 0 1 1.9 0l.1.1a1.35 1.35 0 0 1 0 1.9L5.4 16.6a1.35 1.35 0 0 1-1.9 0l-.1-.1a1.35 1.35 0 0 1 0-1.9Z"/><path d="m12.4 5.6 1.4 1.4M10.1 7.9l1.4 1.4M7.8 10.2l1.4 1.4M5.5 12.5l1.4 1.4"/></svg>;
 }

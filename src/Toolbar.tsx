@@ -1,15 +1,17 @@
 import { displayDpi, formatBytes, middleEllipsisParts } from "./core";
-import { LayoutColumnsIcon, LayoutRowsIcon, ResetIcon, RulerIcon } from "./icons";
+import { BeforeAfterIcon, LayoutColumnsIcon, LayoutRowsIcon, ResetIcon, RulerIcon } from "./icons";
 import type { CompareLayout, LoadedImage, RulerUnit } from "./types";
 
 interface ToolbarProps {
   images: Array<LoadedImage | null>;
   scale: number;
   layout: CompareLayout;
+  overlayMode: boolean;
   rulerVisible: boolean;
   rulerUnit: RulerUnit;
   onScale: (scale: number) => void;
   onLayout: () => void;
+  onOverlay: () => void;
   onRuler: () => void;
   onUnit: (unit: RulerUnit) => void;
   onReset: () => void;
@@ -41,10 +43,12 @@ export function Toolbar({
   images,
   scale,
   layout,
+  overlayMode,
   rulerVisible,
   rulerUnit,
   onScale,
   onLayout,
+  onOverlay,
   onRuler,
   onUnit,
   onReset
@@ -73,6 +77,16 @@ export function Toolbar({
           onClick={onLayout}
         >
           {sideBySide ? <LayoutColumnsIcon /> : <LayoutRowsIcon />}
+        </button>
+        <button
+          className={`round-button ${overlayMode ? "active" : ""}`}
+          type="button"
+          title={overlayMode ? "Tắt so sánh Before/After" : "So sánh Before/After"}
+          aria-label="Bật hoặc tắt so sánh Before/After"
+          aria-pressed={overlayMode}
+          onClick={onOverlay}
+        >
+          <BeforeAfterIcon />
         </button>
         <button
           className={`round-button ${rulerVisible ? "active" : ""}`}

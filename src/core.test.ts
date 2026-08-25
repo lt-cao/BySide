@@ -6,6 +6,7 @@ import {
   middleEllipsisParts,
   nextImagePanel,
   isNewerVersion,
+  overlayPanelAtPoint,
   panelAtDropPoint,
   panelPoint,
   previewDimensions,
@@ -73,6 +74,12 @@ describe("shared image transform", () => {
     const right = { left: 591, right: 1180, top: 36, bottom: 760 };
     expect(panelAtDropPoint({ x: 900, y: 300 }, left, right, "sideBySide")).toBe(1);
     expect(panelAtDropPoint({ x: 300, y: 300 }, left, right, "sideBySide")).toBe(0);
+  });
+
+  it("uses the movable divider to target Before or After", () => {
+    const bounds = { left: 20, right: 1020, top: 36, bottom: 760 };
+    expect(overlayPanelAtPoint({ x: 619, y: 300 }, bounds, 60)).toBe(0);
+    expect(overlayPanelAtPoint({ x: 621, y: 300 }, bounds, 60)).toBe(1);
   });
 
   it("creates a proportional 6K preview only for images over 10000 pixels", () => {

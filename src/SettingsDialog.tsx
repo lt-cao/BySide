@@ -21,7 +21,7 @@ type UpdateState =
   | { kind: "error"; message: string };
 
 const RELEASE_API = "https://api.github.com/repos/lt-cao/BySide/releases/latest";
-const FALLBACK_VERSION = "1.3.2";
+const FALLBACK_VERSION = "1.3.3";
 
 function installerUrl(release: GitHubRelease) {
   const macOS = navigator.userAgent.toLowerCase().includes("mac");
@@ -116,6 +116,10 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             </button>
           </div>
         </div>
+        <footer className="settings-footer">
+          <span>Tác giả</span>
+          <strong>Cao Le</strong>
+        </footer>
       </section>
     </div>
   );
