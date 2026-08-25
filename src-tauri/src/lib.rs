@@ -1,4 +1,4 @@
-use image::{ColorType, ImageReader};
+use image::{ColorType, ImageDecoder, ImageReader};
 use serde::Serialize;
 use std::fs;
 use std::io::Cursor;
@@ -69,9 +69,11 @@ fn inspect_image_path(path: &str) -> Result<ImageMetadata, String> {
         .with_guessed_format()
         .map_err(|_| "Không nhận diện được định dạng ảnh.".to_string())?;
     let format = reader.format();
-    let decoded = reader
-        .decode()
+    let decoder = reader
+        .into_decoder()
         .map_err(|_| "File ảnh bị hỏng hoặc định dạng chưa được hỗ trợ.".to_string())?;
+    let (width, height) = decoder.dimensions();
+    let color = decoder.color_type();
 
     Ok(ImageMetadata {
         file_name: path
@@ -79,9 +81,9 @@ fn inspect_image_path(path: &str) -> Result<ImageMetadata, String> {
             .and_then(|value| value.to_str())
             .unwrap_or("Không có tên file")
             .to_string(),
-        width: decoded.width(),
-        height: decoded.height(),
-        color_space: color_space(decoded.color()),
+        width,
+        height,
+        color_space: color_space(color),
         dpi: parse_dpi(&bytes),
         mime_type: mime_type(&path, format),
         file_size,
@@ -365,6 +367,7 @@ fn read_i32_le(bytes: &[u8], offset: usize) -> Option<i32> {
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .manage(PendingOpenFiles::default())
         .invoke_handler(tauri::generate_handler![inspect_image, take_opened_files])
         .build(tauri::generate_context!())

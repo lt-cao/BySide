@@ -9,15 +9,33 @@ import {
   nextImagePanel,
   panelAtDropPoint,
   panelPoint,
+  previewDimensions,
   zoomAtPoint
 } from "./core";
 import { ImagePanel } from "./ImagePanel";
+import { SettingsDialog } from "./SettingsDialog";
 import { Titlebar } from "./Titlebar";
 import { Toolbar } from "./Toolbar";
 import type { CompareLayout, ImageMetadata, LoadedImage, RulerUnit, ViewTransform } from "./types";
 
 const DEFAULT_TRANSFORM: ViewTransform = { scale: 1, offsetX: 0, offsetY: 0 };
 const imageExtensions = ["png", "jpg", "jpeg", "webp", "gif", "bmp", "tif", "tiff", "ico"];
+
+async function createLargeImagePreview(url: string, metadata: ImageMetadata) {
+  const dimensions = previewDimensions(metadata.width, metadata.height);
+  if (!dimensions || typeof createImageBitmap !== "function") return undefined;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return undefined;
+    return await createImageBitmap(await response.blob(), {
+      resizeWidth: dimensions.width,
+      resizeHeight: dimensions.height,
+      resizeQuality: "high"
+    });
+  } catch {
+    return undefined;
+  }
+}
 
 function storedLayout(): CompareLayout {
   return localStorage.getItem("compareLayout") === "stacked" ? "stacked" : "sideBySide";
@@ -49,6 +67,8 @@ export default function App() {
   const [zoomCursor, setZoomCursor] = useState(false);
   const [zoomOut, setZoomOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const setTransform = useCallback((next: ViewTransform) => {
     transformRef.current = next;
@@ -65,6 +85,7 @@ export default function App() {
 
   const replaceImage = useCallback((index: number, next: LoadedImage) => {
     const updated = [...imagesRef.current];
+    updated[index]?.preview?.close();
     updated[index] = next;
     imagesRef.current = updated;
     setImages(updated);
@@ -76,7 +97,8 @@ export default function App() {
       setError(null);
       const metadata = await invoke<ImageMetadata>("inspect_image", { path });
       const url = convertFileSrc(path);
-      replaceImage(index, { ...metadata, path, url });
+      const preview = await createLargeImagePreview(url, metadata);
+      replaceImage(index, { ...metadata, path, url, preview });
     } catch (reason) {
       setError(reason instanceof Error
         ? reason.message
@@ -85,6 +107,34 @@ export default function App() {
           : "Không thể mở ảnh này.");
     }
   }, [replaceImage]);
+
+  useEffect(() => () => {
+    imagesRef.current.forEach((image) => image?.preview?.close());
+  }, []);
+
+  useEffect(() => {
+    const openContextMenu = (event: MouseEvent) => {
+      event.preventDefault();
+      setContextMenu({
+        x: Math.min(event.clientX, window.innerWidth - 170),
+        y: Math.min(event.clientY, window.innerHeight - 52)
+      });
+    };
+    const closeContextMenu = () => setContextMenu(null);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeContextMenu();
+    };
+    document.addEventListener("contextmenu", openContextMenu);
+    document.addEventListener("pointerdown", closeContextMenu);
+    window.addEventListener("blur", closeContextMenu);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("contextmenu", openContextMenu);
+      document.removeEventListener("pointerdown", closeContextMenu);
+      window.removeEventListener("blur", closeContextMenu);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, []);
 
   const pickImage = useCallback(async (index: number) => {
     const path = await open({
@@ -272,6 +322,7 @@ export default function App() {
   };
 
   const reset = () => {
+    imagesRef.current.forEach((image) => image?.preview?.close());
     imagesRef.current = [null, null];
     setImages([null, null]);
     setTransform(DEFAULT_TRANSFORM);
@@ -281,6 +332,7 @@ export default function App() {
   const imageLoadFailed = useCallback((index: number, path: string) => {
     const current = imagesRef.current[index];
     if (!current || current.path !== path) return;
+    current.preview?.close();
     const updated = [...imagesRef.current];
     updated[index] = null;
     imagesRef.current = updated;
@@ -337,6 +389,23 @@ export default function App() {
         <div className={`zoom-hint ${zoomCursor ? "visible" : ""}`}>Giữ Z và kéo để zoom · Alt để thu nhỏ</div>
         {error && <button className="error-toast" type="button" onClick={() => setError(null)}>{error}<span>×</span></button>}
       </main>
+      {contextMenu && (
+        <div
+          className="context-menu"
+          role="menu"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <button type="button" role="menuitem" onClick={() => {
+            setContextMenu(null);
+            setSettingsOpen(true);
+          }}>
+            <span aria-hidden="true">⚙</span>
+            Cài đặt
+          </button>
+        </div>
+      )}
+      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </>
   );
 }

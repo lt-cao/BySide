@@ -379,6 +379,115 @@ button { color: inherit; }
 
 .error-toast span { font-size: 18px; opacity: 0.75; }
 
+.context-menu {
+  position: fixed;
+  z-index: 240;
+  width: 158px;
+  padding: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 9px;
+  background: rgba(42, 42, 44, 0.92);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.46), inset 0 1px rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: blur(24px) saturate(145%);
+  backdrop-filter: blur(24px) saturate(145%);
+}
+
+.context-menu button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 12px;
+  text-align: left;
+  cursor: default;
+}
+
+.context-menu button:hover { background: rgba(10, 132, 255, 0.9); }
+.context-menu button span { width: 15px; color: rgba(255, 255, 255, 0.78); text-align: center; }
+
+.settings-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.42);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.settings-dialog {
+  width: min(480px, 100%);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 15px;
+  background: linear-gradient(180deg, rgba(60, 60, 63, 0.97), rgba(35, 35, 37, 0.98));
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.58), inset 0 1px rgba(255, 255, 255, 0.11);
+}
+
+.settings-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 18px 18px 15px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.settings-header h2,
+.settings-section h3 { margin: 0; }
+.settings-header h2 { font-size: 17px; }
+.settings-header p { margin: 4px 0 0; color: var(--muted); font-size: 11px; }
+
+.settings-close {
+  width: 25px;
+  height: 25px;
+  padding: 0 0 2px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.settings-close:hover { background: rgba(255, 255, 255, 0.17); }
+
+.settings-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px;
+}
+
+.settings-section-copy { min-width: 0; }
+.settings-section h3 { font-size: 13px; }
+.settings-section p { margin: 6px 0 0; color: rgba(255, 255, 255, 0.62); font-size: 11px; line-height: 1.45; }
+.settings-section p.settings-error { color: #ffaaa3; }
+.settings-actions { flex: 0 0 auto; display: flex; flex-direction: column; gap: 7px; }
+
+.settings-actions button {
+  min-width: 116px;
+  padding: 7px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.settings-actions button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.15); }
+.settings-actions button.primary-action { border-color: rgba(68, 166, 255, 0.7); background: #0a84ff; }
+.settings-actions button.primary-action:hover { background: #2994ff; }
+.settings-actions button:disabled { opacity: 0.45; cursor: default; }
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -400,4 +509,6 @@ button { color: inherit; }
 
 @media (max-width: 740px) {
   .metadata { visibility: hidden; }
+  .settings-section { align-items: stretch; flex-direction: column; }
+  .settings-actions { flex-direction: row; flex-wrap: wrap; }
 }

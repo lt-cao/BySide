@@ -89,7 +89,8 @@ function drawAxis(
   const minorStep = majorStep / 5;
   let value = Math.max(Math.floor(visibleStart / minorStep) * minorStep, 0);
   const last = Math.min(Math.ceil(visibleEnd / minorStep) * minorStep, maximum);
-  const top = 50;
+  // Keep the horizontal numbers below the floating toolbar (ends at ~56 px).
+  const top = 64;
 
   context.beginPath();
   let iterations = 0;

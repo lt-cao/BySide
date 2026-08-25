@@ -5,8 +5,10 @@ import {
   MAX_SCALE,
   middleEllipsisParts,
   nextImagePanel,
+  isNewerVersion,
   panelAtDropPoint,
   panelPoint,
+  previewDimensions,
   tickStep,
   zoomAtPoint
 } from "./core";
@@ -71,5 +73,17 @@ describe("shared image transform", () => {
     const right = { left: 591, right: 1180, top: 36, bottom: 760 };
     expect(panelAtDropPoint({ x: 900, y: 300 }, left, right, "sideBySide")).toBe(1);
     expect(panelAtDropPoint({ x: 300, y: 300 }, left, right, "sideBySide")).toBe(0);
+  });
+
+  it("creates a proportional 6K preview only for images over 10000 pixels", () => {
+    expect(previewDimensions(10_000, 8_000)).toBeNull();
+    expect(previewDimensions(12_000, 8_000)).toEqual({ width: 6144, height: 4096 });
+    expect(previewDimensions(8_000, 16_000)).toEqual({ width: 3072, height: 6144 });
+  });
+
+  it("compares release versions numerically", () => {
+    expect(isNewerVersion("v1.3.2", "1.3.1")).toBe(true);
+    expect(isNewerVersion("1.10.0", "1.9.9")).toBe(true);
+    expect(isNewerVersion("v1.3.1", "1.3.1")).toBe(false);
   });
 });

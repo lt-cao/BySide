@@ -3,9 +3,37 @@ import type { CompareLayout, LoadedImage, ViewTransform } from "./types";
 export const MIN_SCALE = 0.9;
 export const MAX_SCALE = 15;
 export const PANEL_SPACING = 2;
+export const LARGE_IMAGE_THRESHOLD = 10_000;
+export const PREVIEW_MAX_DIMENSION = 6_144;
 
 export const clamp = (value: number, lower: number, upper: number) =>
   Math.min(Math.max(value, lower), upper);
+
+export function previewDimensions(width: number, height: number) {
+  const largest = Math.max(width, height);
+  if (largest <= LARGE_IMAGE_THRESHOLD || width <= 0 || height <= 0) return null;
+  const ratio = PREVIEW_MAX_DIMENSION / largest;
+  return {
+    width: Math.max(Math.round(width * ratio), 1),
+    height: Math.max(Math.round(height * ratio), 1)
+  };
+}
+
+export function isNewerVersion(candidate: string, current: string) {
+  const parts = (version: string) => version
+    .replace(/^v/i, "")
+    .split("-")[0]
+    .split(".")
+    .map((value) => Number.parseInt(value, 10) || 0);
+  const next = parts(candidate);
+  const installed = parts(current);
+  const length = Math.max(next.length, installed.length);
+  for (let index = 0; index < length; index += 1) {
+    const difference = (next[index] ?? 0) - (installed[index] ?? 0);
+    if (difference !== 0) return difference > 0;
+  }
+  return false;
+}
 
 export function panelPoint(
   location: { x: number; y: number },

@@ -15,6 +15,8 @@ Tác giả: **Cao Le**
 - Bố cục trái/phải hoặc trên/dưới.
 - Thước đo px, pt, inch và cm.
 - Rust đọc kích thước pixel, hệ màu, DPI PNG/JPEG và dung lượng file.
+- Ảnh có cạnh lớn hơn 10.000 px dùng bitmap xem trước 6K để zoom/pan mượt hơn nhưng vẫn giữ metadata và thước theo kích thước gốc.
+- Menu chuột phải có Cài đặt, tự kiểm tra bản phát hành mới nhất và mở đúng bộ cài từ GitHub.
 - Ghi nhớ bố cục, trạng thái thước và đơn vị.
 - Giới hạn file 512 MB và chỉ cho phép các định dạng ảnh hỗ trợ.
 

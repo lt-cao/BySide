@@ -14,6 +14,7 @@ export interface ImageMetadata {
 export interface LoadedImage extends ImageMetadata {
   path: string;
   url: string;
+  preview?: ImageBitmap;
 }
 
 export interface ViewTransform {
