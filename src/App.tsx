@@ -15,7 +15,7 @@ import {
   zoomAtPoint
 } from "./core";
 import { ImagePanel } from "./ImagePanel";
-import { FolderIcon, OpenWithIcon, ReloadIcon, SettingsIcon } from "./icons";
+import { FolderIcon, OpenWithIcon, ReloadIcon, ResetIcon, SettingsIcon } from "./icons";
 import { RulerCanvas } from "./RulerCanvas";
 import { SettingsDialog } from "./SettingsDialog";
 import { Titlebar } from "./Titlebar";
@@ -126,7 +126,7 @@ export default function App() {
       }
       setContextMenu({
         x: Math.min(event.clientX, window.innerWidth - 208),
-        y: Math.min(event.clientY, window.innerHeight - 172),
+        y: Math.min(event.clientY, window.innerHeight - 208),
         index
       });
     };
@@ -553,6 +553,13 @@ export default function App() {
           }}>
             <OpenWithIcon />
             Mở bằng…
+          </button>
+          <button type="button" role="menuitem" disabled={!images.some(Boolean)} onClick={() => {
+            setContextMenu(null);
+            reset();
+          }}>
+            <ResetIcon />
+            Tắt hết ảnh
           </button>
           <div className="context-menu-separator" role="separator" />
           <button type="button" role="menuitem" onClick={() => {

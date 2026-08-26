@@ -1,6 +1,6 @@
 [package]
 name = "byside"
-version = "1.4.2"
+version = "1.4.3"
 description = "Compare two images side by side"
 authors = ["Cao Le"]
 edition = "2021"
