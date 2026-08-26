@@ -16,7 +16,7 @@ type UpdateState =
   | { kind: "installing"; latest: string }
   | { kind: "error"; message: string };
 
-const FALLBACK_VERSION = "1.4.3";
+const FALLBACK_VERSION = "1.4.4";
 
 export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const [currentVersion, setCurrentVersion] = useState(FALLBACK_VERSION);

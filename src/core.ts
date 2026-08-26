@@ -149,6 +149,16 @@ export function nextImagePanel(images: Array<LoadedImage | null>): 0 | 1 {
   return 0;
 }
 
+export function dropImageAssignments(paths: string[], target: 0 | 1) {
+  if (paths.length >= 2) {
+    return [
+      { index: 0 as const, path: paths[0] },
+      { index: 1 as const, path: paths[1] }
+    ];
+  }
+  return paths[0] ? [{ index: target, path: paths[0] }] : [];
+}
+
 interface RectLike {
   left: number;
   right: number;

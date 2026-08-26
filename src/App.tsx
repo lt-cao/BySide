@@ -7,6 +7,7 @@ import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import {
   clamp,
   clampTransform,
+  dropImageAssignments,
   dropEventPoint,
   nextImagePanel,
   overlayPanelAtPoint,
@@ -52,6 +53,7 @@ export default function App() {
   const dragRef = useRef({ active: false, pointerId: -1, x: 0, y: 0, mode: "pan" as "pan" | "zoom" });
   const zKeyRef = useRef(false);
   const dropTargetRef = useRef<0 | 1 | null>(null);
+  const multiImageDropRef = useRef(false);
 
   const [images, setImages] = useState<Array<LoadedImage | null>>([null, null]);
   const [transform, setTransformState] = useState<ViewTransform>(DEFAULT_TRANSFORM);
@@ -60,7 +62,7 @@ export default function App() {
   const [comparisonPosition, setComparisonPosition] = useState(comparisonPositionRef.current);
   const [rulerVisible, setRulerVisible] = useState(localStorage.getItem("isRulerVisible") === "true");
   const [rulerUnit, setRulerUnit] = useState<RulerUnit>(storedUnit());
-  const [dropTarget, setDropTarget] = useState<number | null>(null);
+  const [dropTarget, setDropTarget] = useState<0 | 1 | "both" | null>(null);
   const [dragging, setDragging] = useState(false);
   const [zoomCursor, setZoomCursor] = useState(false);
   const [zoomOut, setZoomOut] = useState(false);
@@ -193,8 +195,18 @@ export default function App() {
     getCurrentWebview().onDragDropEvent((event) => {
       if (event.payload.type === "leave") {
         dropTargetRef.current = null;
+        multiImageDropRef.current = false;
         setDropTarget(null);
         return;
+      }
+      const imagePaths = "paths" in event.payload
+        ? event.payload.paths.filter((candidate) => {
+            const extension = candidate.split(".").pop()?.toLowerCase();
+            return extension ? imageExtensions.includes(extension) : false;
+          })
+        : [];
+      if (event.payload.type === "enter") {
+        multiImageDropRef.current = imagePaths.length >= 2;
       }
       const leftBounds = leftPanelRef.current?.getBoundingClientRect();
       const rightBounds = rightPanelRef.current?.getBoundingClientRect();
@@ -211,15 +223,15 @@ export default function App() {
         ? (dropTargetRef.current ?? detectedTarget)
         : detectedTarget;
       dropTargetRef.current = target;
-      setDropTarget(target);
+      setDropTarget(multiImageDropRef.current ? "both" : target);
       if (event.payload.type === "drop") {
         dropTargetRef.current = null;
+        multiImageDropRef.current = false;
         setDropTarget(null);
-        const path = event.payload.paths.find((candidate) => {
-          const extension = candidate.split(".").pop()?.toLowerCase();
-          return extension ? imageExtensions.includes(extension) : false;
-        });
-        if (path) void loadPath(target, path);
+        const assignments = dropImageAssignments(imagePaths, target);
+        if (assignments.length) {
+          void Promise.all(assignments.map(({ index, path }) => loadPath(index, path)));
+        }
       }
     }).then((unlisten) => { dispose = unlisten; });
     return () => dispose?.();
@@ -380,14 +392,6 @@ export default function App() {
     setError(`Không thể hiển thị ảnh “${current.fileName}”. Hãy chọn lại file.`);
   }, []);
 
-  const reloadImages = useCallback(async () => {
-    const paths = imagesRef.current
-      .map((image, index) => image ? { index, path: image.path } : null)
-      .filter((item): item is { index: number; path: string } => item !== null);
-    if (!paths.length) return;
-    await Promise.all(paths.map(({ index, path }) => loadPath(index, path)));
-  }, [loadPath]);
-
   const revealImage = useCallback(async (image: LoadedImage | null) => {
     if (!image) return;
     try {
@@ -457,7 +461,7 @@ export default function App() {
               index={1}
               panelRef={rightPanelRef}
               image={images[1]}
-              dropTarget={dropTarget === 1}
+              dropTarget={dropTarget === 1 || dropTarget === "both"}
               {...panelProps}
               rulerVisible={false}
               className="overlay-after"
@@ -466,7 +470,7 @@ export default function App() {
               index={0}
               panelRef={leftPanelRef}
               image={images[0]}
-              dropTarget={dropTarget === 0}
+              dropTarget={dropTarget === 0 || dropTarget === "both"}
               {...panelProps}
               rulerVisible={false}
               className="overlay-before"
@@ -516,9 +520,9 @@ export default function App() {
           </div>
         ) : (
           <>
-            <ImagePanel index={0} panelRef={leftPanelRef} image={images[0]} dropTarget={dropTarget === 0} {...panelProps} />
+            <ImagePanel index={0} panelRef={leftPanelRef} image={images[0]} dropTarget={dropTarget === 0 || dropTarget === "both"} {...panelProps} />
             <div className="divider" aria-hidden="true" />
-            <ImagePanel index={1} panelRef={rightPanelRef} image={images[1]} dropTarget={dropTarget === 1} {...panelProps} />
+            <ImagePanel index={1} panelRef={rightPanelRef} image={images[1]} dropTarget={dropTarget === 1 || dropTarget === "both"} {...panelProps} />
           </>
         )}
         <div className={`zoom-hint ${zoomCursor ? "visible" : ""}`}>Giữ Z và kéo để zoom · Alt để thu nhỏ</div>
@@ -533,10 +537,10 @@ export default function App() {
         >
           <button type="button" role="menuitem" disabled={!images.some(Boolean)} onClick={() => {
             setContextMenu(null);
-            void reloadImages();
+            reset();
           }}>
-            <ReloadIcon />
-            Tải lại ảnh
+            <ResetIcon />
+            Tắt hết ảnh
           </button>
           <button type="button" role="menuitem" disabled={!images[contextMenu.index]} onClick={() => {
             const image = images[contextMenu.index];
@@ -554,13 +558,6 @@ export default function App() {
             <OpenWithIcon />
             Mở bằng…
           </button>
-          <button type="button" role="menuitem" disabled={!images.some(Boolean)} onClick={() => {
-            setContextMenu(null);
-            reset();
-          }}>
-            <ResetIcon />
-            Tắt hết ảnh
-          </button>
           <div className="context-menu-separator" role="separator" />
           <button type="button" role="menuitem" onClick={() => {
             setContextMenu(null);
@@ -568,6 +565,14 @@ export default function App() {
           }}>
             <SettingsIcon className="settings-menu-icon" />
             Cài đặt
+          </button>
+          <button type="button" role="menuitem" disabled={!images[contextMenu.index]} onClick={() => {
+            const image = images[contextMenu.index];
+            setContextMenu(null);
+            if (image) void loadPath(contextMenu.index, image.path);
+          }}>
+            <ReloadIcon />
+            Cập nhật ảnh hiện tại
           </button>
         </div>
       )}

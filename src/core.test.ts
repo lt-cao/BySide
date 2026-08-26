@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   displayDpi,
+  dropImageAssignments,
   dropEventPoint,
   MAX_SCALE,
   middleEllipsisParts,
@@ -59,6 +60,16 @@ describe("shared image transform", () => {
     expect(nextImagePanel([null, null])).toBe(0);
     expect(nextImagePanel([image, null])).toBe(1);
     expect(nextImagePanel([image, image])).toBe(0);
+  });
+
+  it("splits two dropped images between the left and right panels", () => {
+    expect(dropImageAssignments(["first.png", "second.jpg"], 1)).toEqual([
+      { index: 0, path: "first.png" },
+      { index: 1, path: "second.jpg" }
+    ]);
+    expect(dropImageAssignments(["single.png"], 1)).toEqual([
+      { index: 1, path: "single.png" }
+    ]);
   });
 
   it("keeps macOS Retina drop coordinates in logical points", () => {
