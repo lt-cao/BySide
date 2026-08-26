@@ -1,4 +1,5 @@
-import { useEffect, useRef, type CSSProperties, type RefObject } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
+import { needsFullResolution } from "./core";
 import { ImageAddIcon } from "./icons";
 import { RulerCanvas } from "./RulerCanvas";
 import type { LoadedImage, RulerUnit, ViewTransform } from "./types";
@@ -34,6 +35,35 @@ function PreviewCanvas({ bitmap, style }: { bitmap: ImageBitmap; style: CSSPrope
   return <canvas ref={canvasRef} className="compare-image" aria-label="Bản xem trước ảnh lớn" style={style} />;
 }
 
+function FullResolutionImage({
+  index,
+  image,
+  style,
+  onImageError
+}: {
+  index: number;
+  image: LoadedImage & { preview: ImageBitmap };
+  style: CSSProperties;
+  onImageError: (index: number, path: string) => void;
+}) {
+  const [loaded, setLoaded] = useState(false);
+
+  return (
+    <>
+      {!loaded && <PreviewCanvas bitmap={image.preview} style={style} />}
+      <img
+        className="compare-image"
+        src={image.url}
+        alt={`Ảnh so sánh ${index + 1} — độ phân giải gốc`}
+        draggable={false}
+        onLoad={() => setLoaded(true)}
+        onError={() => onImageError(index, image.path)}
+        style={{ ...style, opacity: loaded ? 1 : 0 }}
+      />
+    </>
+  );
+}
+
 export function ImagePanel({
   index,
   panelRef,
@@ -50,6 +80,21 @@ export function ImagePanel({
   className,
   style: panelStyle
 }: ImagePanelProps) {
+  const [panelSize, setPanelSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    const updateSize = () => {
+      const bounds = panel.getBoundingClientRect();
+      setPanelSize({ width: bounds.width, height: bounds.height });
+    };
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(panel);
+    return () => observer.disconnect();
+  }, [panelRef]);
+
   const classes = [
     "image-panel",
     image ? "has-image" : "",
@@ -79,9 +124,8 @@ export function ImagePanel({
         const style = {
           transform: `translate(${transform.offsetX}px, ${transform.offsetY}px) scale(${transform.scale})`
         };
-        return image.preview
-          ? <PreviewCanvas bitmap={image.preview} style={style} />
-          : (
+        if (!image.preview) {
+          return (
             <img
               className="compare-image"
               src={image.url}
@@ -91,6 +135,30 @@ export function ImagePanel({
               style={style}
             />
           );
+        }
+
+        const showOriginal = needsFullResolution(
+          image.width,
+          image.height,
+          image.preview.width,
+          image.preview.height,
+          panelSize.width,
+          panelSize.height,
+          transform.scale,
+          window.devicePixelRatio
+        );
+
+        return showOriginal
+          ? (
+            <FullResolutionImage
+              key={image.url}
+              index={index}
+              image={image as LoadedImage & { preview: ImageBitmap }}
+              style={style}
+              onImageError={onImageError}
+            />
+          )
+          : <PreviewCanvas bitmap={image.preview} style={style} />;
       })()}
       <RulerCanvas image={image} transform={transform} unit={rulerUnit} visible={rulerVisible} />
       <div className="drop-indicator">Thả ảnh vào đây</div>

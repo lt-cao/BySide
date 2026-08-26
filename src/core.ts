@@ -19,6 +19,29 @@ export function previewDimensions(width: number, height: number) {
   };
 }
 
+export function needsFullResolution(
+  imageWidth: number,
+  imageHeight: number,
+  previewWidth: number,
+  previewHeight: number,
+  panelWidth: number,
+  panelHeight: number,
+  scale: number,
+  devicePixelRatio = 1
+) {
+  if (
+    imageWidth <= 0 || imageHeight <= 0
+    || previewWidth <= 0 || previewHeight <= 0
+    || panelWidth <= 0 || panelHeight <= 0
+  ) return false;
+
+  const fit = Math.min(panelWidth / imageWidth, panelHeight / imageHeight);
+  const density = Math.max(devicePixelRatio, 1);
+  const displayedWidth = imageWidth * fit * scale * density;
+  const displayedHeight = imageHeight * fit * scale * density;
+  return displayedWidth > previewWidth || displayedHeight > previewHeight;
+}
+
 export function isNewerVersion(candidate: string, current: string) {
   const parts = (version: string) => version
     .replace(/^v/i, "")
