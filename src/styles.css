@@ -381,7 +381,6 @@ button { color: inherit; }
   pointer-events: none;
   transform-origin: center;
   filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.38));
-  will-change: transform;
 }
 
 .ruler-canvas {

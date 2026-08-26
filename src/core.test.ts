@@ -5,12 +5,10 @@ import {
   MAX_SCALE,
   middleEllipsisParts,
   nextImagePanel,
-  needsFullResolution,
   isNewerVersion,
   overlayPanelAtPoint,
   panelAtDropPoint,
   panelPoint,
-  previewDimensions,
   tickStep,
   zoomAtPoint
 } from "./core";
@@ -81,17 +79,6 @@ describe("shared image transform", () => {
     const bounds = { left: 20, right: 1020, top: 36, bottom: 760 };
     expect(overlayPanelAtPoint({ x: 619, y: 300 }, bounds, 60)).toBe(0);
     expect(overlayPanelAtPoint({ x: 621, y: 300 }, bounds, 60)).toBe(1);
-  });
-
-  it("creates a proportional 6K preview only for images over 10000 pixels", () => {
-    expect(previewDimensions(10_000, 8_000)).toBeNull();
-    expect(previewDimensions(12_000, 8_000)).toEqual({ width: 6144, height: 4096 });
-    expect(previewDimensions(8_000, 16_000)).toEqual({ width: 3072, height: 6144 });
-  });
-
-  it("switches a large image from preview to original before the preview is upscaled", () => {
-    expect(needsFullResolution(12_000, 8_000, 6_144, 4_096, 750, 600, 3, 2)).toBe(false);
-    expect(needsFullResolution(12_000, 8_000, 6_144, 4_096, 750, 600, 5, 2)).toBe(true);
   });
 
   it("compares release versions numerically", () => {

@@ -3,44 +3,9 @@ import type { CompareLayout, LoadedImage, ViewTransform } from "./types";
 export const MIN_SCALE = 0.9;
 export const MAX_SCALE = 15;
 export const PANEL_SPACING = 2;
-export const LARGE_IMAGE_THRESHOLD = 10_000;
-export const PREVIEW_MAX_DIMENSION = 6_144;
 
 export const clamp = (value: number, lower: number, upper: number) =>
   Math.min(Math.max(value, lower), upper);
-
-export function previewDimensions(width: number, height: number) {
-  const largest = Math.max(width, height);
-  if (largest <= LARGE_IMAGE_THRESHOLD || width <= 0 || height <= 0) return null;
-  const ratio = PREVIEW_MAX_DIMENSION / largest;
-  return {
-    width: Math.max(Math.round(width * ratio), 1),
-    height: Math.max(Math.round(height * ratio), 1)
-  };
-}
-
-export function needsFullResolution(
-  imageWidth: number,
-  imageHeight: number,
-  previewWidth: number,
-  previewHeight: number,
-  panelWidth: number,
-  panelHeight: number,
-  scale: number,
-  devicePixelRatio = 1
-) {
-  if (
-    imageWidth <= 0 || imageHeight <= 0
-    || previewWidth <= 0 || previewHeight <= 0
-    || panelWidth <= 0 || panelHeight <= 0
-  ) return false;
-
-  const fit = Math.min(panelWidth / imageWidth, panelHeight / imageHeight);
-  const density = Math.max(devicePixelRatio, 1);
-  const displayedWidth = imageWidth * fit * scale * density;
-  const displayedHeight = imageHeight * fit * scale * density;
-  return displayedWidth > previewWidth || displayedHeight > previewHeight;
-}
 
 export function isNewerVersion(candidate: string, current: string) {
   const parts = (version: string) => version

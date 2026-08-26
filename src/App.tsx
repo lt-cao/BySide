@@ -12,7 +12,6 @@ import {
   overlayPanelAtPoint,
   panelAtDropPoint,
   panelPoint,
-  previewDimensions,
   zoomAtPoint
 } from "./core";
 import { ImagePanel } from "./ImagePanel";
@@ -25,22 +24,6 @@ import type { CompareLayout, ImageMetadata, LoadedImage, RulerUnit, ViewTransfor
 
 const DEFAULT_TRANSFORM: ViewTransform = { scale: 1, offsetX: 0, offsetY: 0 };
 const imageExtensions = ["png", "jpg", "jpeg", "webp", "gif", "bmp", "tif", "tiff", "ico"];
-
-async function createLargeImagePreview(url: string, metadata: ImageMetadata) {
-  const dimensions = previewDimensions(metadata.width, metadata.height);
-  if (!dimensions || typeof createImageBitmap !== "function") return undefined;
-  try {
-    const response = await fetch(url);
-    if (!response.ok) return undefined;
-    return await createImageBitmap(await response.blob(), {
-      resizeWidth: dimensions.width,
-      resizeHeight: dimensions.height,
-      resizeQuality: "high"
-    });
-  } catch {
-    return undefined;
-  }
-}
 
 function storedLayout(): CompareLayout {
   return localStorage.getItem("compareLayout") === "stacked" ? "stacked" : "sideBySide";
@@ -100,7 +83,6 @@ export default function App() {
 
   const replaceImage = useCallback((index: number, next: LoadedImage) => {
     const updated = [...imagesRef.current];
-    updated[index]?.preview?.close();
     updated[index] = next;
     imagesRef.current = updated;
     setImages(updated);
@@ -112,8 +94,7 @@ export default function App() {
       setError(null);
       const metadata = await invoke<ImageMetadata>("inspect_image", { path });
       const url = `${convertFileSrc(path)}?reload=${Date.now()}`;
-      const preview = await createLargeImagePreview(url, metadata);
-      replaceImage(index, { ...metadata, path, url, preview });
+      replaceImage(index, { ...metadata, path, url });
     } catch (reason) {
       setError(reason instanceof Error
         ? reason.message
@@ -122,10 +103,6 @@ export default function App() {
           : "Không thể mở ảnh này.");
     }
   }, [replaceImage]);
-
-  useEffect(() => () => {
-    imagesRef.current.forEach((image) => image?.preview?.close());
-  }, []);
 
   useEffect(() => {
     const openContextMenu = (event: MouseEvent) => {
@@ -387,7 +364,6 @@ export default function App() {
   }, []);
 
   const reset = () => {
-    imagesRef.current.forEach((image) => image?.preview?.close());
     imagesRef.current = [null, null];
     setImages([null, null]);
     setTransform(DEFAULT_TRANSFORM);
@@ -397,7 +373,6 @@ export default function App() {
   const imageLoadFailed = useCallback((index: number, path: string) => {
     const current = imagesRef.current[index];
     if (!current || current.path !== path) return;
-    current.preview?.close();
     const updated = [...imagesRef.current];
     updated[index] = null;
     imagesRef.current = updated;
