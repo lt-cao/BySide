@@ -10,5 +10,6 @@ src-tauri/icons/StoreLogo.png
 src-tauri/icons/icon.png
 work/
 release/
+macOS/BySide/build/
 .DS_Store
 *.log

@@ -3,54 +3,38 @@ name: Publish installers
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
+
+concurrency:
+  group: byside-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
-  publish:
-    name: ${{ matrix.name }}
-    runs-on: ${{ matrix.platform }}
+  windows:
+    name: Windows Setup.exe
+    runs-on: windows-latest
     permissions:
       contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Windows Setup.exe
-            platform: windows-latest
-            args: --bundles nsis
-            rust_targets: ""
-          - name: macOS Universal DMG
-            platform: macos-latest
-            args: --target universal-apple-darwin --bundles app,dmg
-            rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
-
     steps:
       - uses: actions/checkout@v5
-
       - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
-
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.rust_targets }}
-
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-
       - name: Install dependencies
         run: npm ci
-
       - name: Test frontend
         run: npm test
-
       - name: Test Rust
-        run: cargo test --manifest-path src-tauri/Cargo.toml
-
-      - name: Build and publish installer
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml
+      - name: Build installer and signed update into draft release
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -60,10 +44,74 @@ jobs:
           tagName: v__VERSION__
           releaseName: BySide v__VERSION__
           releaseBody: |
-            Chọn đúng bộ cài cho máy của bạn:
-            - Windows: file `*-setup.exe`
-            - macOS Intel hoặc Apple Silicon: file `.dmg`
-          releaseDraft: false
+            ## Tải bộ cài / Installers
+            - Windows x64: `BySide_*_x64-setup.exe` (React + Rust/Tauri).
+            - macOS Intel và Apple Silicon: `BySide_*_universal.dmg` (SwiftUI + AppKit).
+
+            ## macOS
+            - Giao diện Swift đã duyệt, thanh công cụ nổi và ảnh tràn vùng tiêu đề.
+            - So sánh trái/phải hoặc trên/dưới; kéo thanh so sánh và pan ảnh.
+            - Giữ độ phân giải gốc khi zoom; double-click vùng tiêu đề để phóng to/thu nhỏ cửa sổ.
+            - Bản Swift hiện chưa hỗ trợ cập nhật trong ứng dụng; cài bằng DMG.
+
+            Windows tiếp tục dùng bản React + Rust, giữ chức năng cập nhật trong ứng dụng.
+            Các file `.sig` và `latest.json` phục vụ cập nhật Windows, không cần tải thủ công.
+          releaseDraft: true
           prerelease: false
           updaterJsonPreferNsis: true
-          args: ${{ matrix.args }}
+          args: --bundles nsis
+
+  macos:
+    name: macOS Swift Universal DMG
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Build native app and DMG
+        run: bash script/build_macos.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-installer
+          path: release/BySide_*_universal.dmg
+          if-no-files-found: error
+
+  publish:
+    name: Publish both installers
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: macos-installer
+          path: release
+      - name: Verify Windows updater and publish complete release
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./package.json').version")
+          tag="v$version"
+          gh release download "$tag" --pattern latest.json --dir release
+          gh api "repos/$GH_REPO/releases" > release/releases.json
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const version = JSON.parse(fs.readFileSync('package.json')).version;
+          const update = JSON.parse(fs.readFileSync('release/latest.json'));
+          const windows = update.platforms?.['windows-x86_64'];
+          const releases = JSON.parse(fs.readFileSync('release/releases.json'));
+          const release = releases.find(item => item.tag_name === `v${version}`);
+          const installer = release?.assets.find(item => item.name === `BySide_${version}_x64-setup.exe`);
+          if (update.version.replace(/^v/, '') !== version || !windows?.signature ||
+              !installer || ![installer.url, installer.browser_download_url].includes(windows.url)) {
+            throw new Error('Missing or mismatched signed Windows update');
+          }
+          JS
+          gh release upload "$tag" "release/BySide_${version}_universal.dmg" --clobber
+          gh release edit "$tag" --draft=false --latest

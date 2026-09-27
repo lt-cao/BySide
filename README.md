@@ -1,6 +1,6 @@
 # BySide
 
-Ứng dụng desktop dành cho Windows và macOS, viết bằng **Tauri 2 + React/TypeScript + Rust**.
+Ứng dụng desktop so sánh ảnh: Windows dùng **Tauri 2 + React/TypeScript + Rust**; macOS dùng **SwiftUI + AppKit** trong thư mục `macOS/BySide`.
 
 Tác giả: **Cao Le**
 
@@ -15,8 +15,8 @@ Tác giả: **Cao Le**
 - Bố cục trái/phải hoặc trên/dưới.
 - Thước đo px, pt, inch và cm.
 - Rust đọc kích thước pixel, hệ màu, DPI PNG/JPEG và dung lượng file.
-- Ảnh có cạnh lớn hơn 10.000 px dùng bitmap xem trước 6K để zoom/pan mượt hơn nhưng vẫn giữ metadata và thước theo kích thước gốc.
-- Menu chuột phải có Cài đặt, tự kiểm tra bản phát hành mới nhất và mở đúng bộ cài từ GitHub.
+- Giữ độ phân giải ảnh gốc khi zoom để so sánh chi tiết.
+- Windows hỗ trợ cập nhật trong ứng dụng. Bản macOS Swift hiện cài/cập nhật bằng DMG.
 - Ghi nhớ bố cục, trạng thái thước và đơn vị.
 - Giới hạn file 512 MB và chỉ cho phép các định dạng ảnh hỗ trợ.
 
@@ -45,7 +45,6 @@ npm run build:windows
 Build macOS Universal:
 
 ```bash
-rustup target add aarch64-apple-darwin x86_64-apple-darwin
 npm run build:macos
 ```
 
@@ -59,7 +58,7 @@ Ví dụ cập nhật mã nguồn:
 git push origin main
 ```
 
-GitHub Actions kiểm thử, build và đưa đúng hai bộ cài lên cùng một GitHub Release.
+Build macOS cần Xcode 26 trở lên và Node.js. GitHub Actions kiểm thử và build hai bộ cài, chỉ công khai GitHub Release sau khi cả hai thành công. Các file chữ ký và `latest.json` bổ sung phục vụ cập nhật Windows.
 
 ## Kiểm thử
 
