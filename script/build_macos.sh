@@ -18,7 +18,7 @@ xcodebuild -quiet \
   MARKETING_VERSION="$version" build
 
 app="$PWD/macOS/BySide/build/Build/Products/Release/BySide.app"
-lipo -verify_arch arm64 x86_64 "$app/Contents/MacOS/BySide"
+lipo "$app/Contents/MacOS/BySide" -verify_arch arm64 x86_64
 codesign --force --sign - "$app"
 codesign --verify --strict "$app"
 mkdir -p release
