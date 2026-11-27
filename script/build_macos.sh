@@ -4,10 +4,16 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 version=$(node -p "require('./package.json').version")
 output="$PWD/release/BySide_${version}_universal.dmg"
-if [[ -e "$output" ]]; then
-  echo "Output already exists: $output" >&2
-  exit 1
-fi
+rm -f "$output"
+
+rustup target add aarch64-apple-darwin x86_64-apple-darwin
+cargo build --manifest-path macOS/BySide/RustCore/Cargo.toml --release --target aarch64-apple-darwin
+cargo build --manifest-path macOS/BySide/RustCore/Cargo.toml --release --target x86_64-apple-darwin
+mkdir -p macOS/BySide/RustCore/target/universal/release
+lipo -create \
+  macOS/BySide/RustCore/target/aarch64-apple-darwin/release/libbyside_rust_core.a \
+  macOS/BySide/RustCore/target/x86_64-apple-darwin/release/libbyside_rust_core.a \
+  -output macOS/BySide/RustCore/target/universal/release/libbyside_rust_core.a
 
 xcodebuild -quiet \
   -project macOS/BySide/BySide.xcodeproj \
@@ -18,7 +24,11 @@ xcodebuild -quiet \
   MARKETING_VERSION="$version" build
 
 app="$PWD/macOS/BySide/build/Build/Products/Release/BySide.app"
-lipo "$app/Contents/MacOS/BySide" -verify_arch arm64 x86_64
+archs=$(lipo -archs "$app/Contents/MacOS/BySide")
+[[ "$archs" == *arm64* && "$archs" == *x86_64* ]] || {
+  echo "BySide.app is not a universal binary: $archs" >&2
+  exit 1
+}
 codesign --force --sign - "$app"
 codesign --verify --strict "$app"
 mkdir -p release

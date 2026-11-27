@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import Foundation
 import ImageIO
 import UniformTypeIdentifiers
 
@@ -70,6 +71,32 @@ struct LoadedImage: Identifiable {
     }
 }
 
+private struct RustImageMetadata: Decodable {
+    let ok: Bool
+    let width: Int
+    let height: Int
+    let colorSpace: String
+    let dpi: Int?
+    let fileSize: Int64
+    let error: String?
+}
+
+private enum RustImageInspector {
+    static func inspect(_ url: URL) throws -> RustImageMetadata {
+        let jsonPointer: UnsafeMutablePointer<CChar>? = url.path.withCString { path in
+            byside_inspect_image_json(path)
+        }
+        guard let jsonPointer else { throw ImageLoadError.unreadable }
+        defer { byside_free_string(jsonPointer) }
+        let json = String(cString: jsonPointer)
+        let metadata = try JSONDecoder().decode(RustImageMetadata.self, from: Data(json.utf8))
+        guard metadata.ok else {
+            throw NSError(domain: "BySideRustCore", code: 1, userInfo: [NSLocalizedDescriptionKey: metadata.error ?? "Không đọc được dữ liệu ảnh."])
+        }
+        return metadata
+    }
+}
+
 enum ImageLoadError: LocalizedError {
     case unsupported
     case unreadable
@@ -84,11 +111,11 @@ enum ImageLoadError: LocalizedError {
 
 enum FullResolutionImageLoader {
     static func load(_ url: URL) throws -> LoadedImage {
+        let rustMetadata = try RustImageInspector.inspect(url)
         guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else {
             throw ImageLoadError.unsupported
         }
-        guard let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
-              let cgImage = CGImageSourceCreateImageAtIndex(
+        guard let cgImage = CGImageSourceCreateImageAtIndex(
                 source,
                 0,
                 [
@@ -99,17 +126,6 @@ enum FullResolutionImageLoader {
             throw ImageLoadError.unreadable
         }
 
-        let width = (properties[kCGImagePropertyPixelWidth] as? NSNumber)?.intValue ?? cgImage.width
-        let height = (properties[kCGImagePropertyPixelHeight] as? NSNumber)?.intValue ?? cgImage.height
-        let dpiWidth = (properties[kCGImagePropertyDPIWidth] as? NSNumber)?.doubleValue
-        let dpiHeight = (properties[kCGImagePropertyDPIHeight] as? NSNumber)?.doubleValue
-        let dpiValues = [dpiWidth, dpiHeight].compactMap { $0 }.filter { $0 > 0 }
-        let dpi = dpiValues.isEmpty ? nil : CGFloat(dpiValues.reduce(0, +) / Double(dpiValues.count))
-        let colorModel = (properties[kCGImagePropertyColorModel] as? String)
-            ?? cgImage.colorSpace?.name.map { $0 as String }
-            ?? "Color —"
-        let fileSize = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize).map(Int64.init) ?? 0
-
         // NSImage wraps the original CGImage. No thumbnail or downsampled copy is created.
         let image = NSImage(
             cgImage: cgImage,
@@ -118,20 +134,12 @@ enum FullResolutionImageLoader {
         return LoadedImage(
             url: url,
             image: image,
-            width: width,
-            height: height,
-            colorSpace: friendlyColorSpace(colorModel),
-            dpi: dpi,
-            fileSize: fileSize
+            width: rustMetadata.width,
+            height: rustMetadata.height,
+            colorSpace: rustMetadata.colorSpace,
+            dpi: rustMetadata.dpi.map(CGFloat.init),
+            fileSize: rustMetadata.fileSize
         )
-    }
-
-    private static func friendlyColorSpace(_ value: String) -> String {
-        let lower = value.lowercased()
-        if lower.contains("gray") || lower.contains("mono") { return "Gray" }
-        if lower.contains("cmyk") { return "CMYK" }
-        if lower.contains("rgb") { return "RGB" }
-        return value
     }
 }
 

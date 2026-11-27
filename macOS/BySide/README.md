@@ -1,6 +1,6 @@
 # BySide for macOS
 
-Ứng dụng macOS native viết bằng Swift, SwiftUI và AppKit. Dự án Windows/Tauri ở thư mục gốc được giữ nguyên.
+Ứng dụng macOS có UI native viết bằng Swift, SwiftUI và AppKit; phần kiểm tra file, kích thước, màu, DPI và dung lượng ảnh chạy bằng Rust core trong `RustCore`. Dự án Windows/Tauri ở thư mục gốc dùng cùng hướng Rust cho backend.
 
 ## Chạy trong Xcode
 
@@ -12,6 +12,12 @@
 
 ```sh
 xcodebuild -project BySide.xcodeproj -scheme BySide -configuration Release build
+```
+
+Script phát hành tự build Rust core cho arm64 và x86_64, ghép thành static library universal rồi link vào Xcode:
+
+```sh
+bash ../../script/build_macos.sh
 ```
 
 Canvas dùng ảnh gốc từ ImageIO, không tạo thumbnail/downsample trước khi zoom.

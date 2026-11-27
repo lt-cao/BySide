@@ -1,6 +1,6 @@
 # BySide
 
-Ứng dụng desktop so sánh ảnh: Windows dùng **Tauri 2 + React/TypeScript + Rust**; macOS dùng **SwiftUI + AppKit** trong thư mục `macOS/BySide`.
+Ứng dụng desktop so sánh ảnh: Windows dùng **Tauri 2 + React/TypeScript + Rust**; macOS dùng **SwiftUI + AppKit** cho giao diện và **Rust core** cho đọc/kiểm tra metadata ảnh trong thư mục `macOS/BySide`.
 
 Tác giả: **Cao Le**
 

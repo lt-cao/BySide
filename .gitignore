@@ -11,5 +11,6 @@ src-tauri/icons/icon.png
 work/
 release/
 macOS/BySide/build/
+macOS/BySide/RustCore/target/
 .DS_Store
 *.log

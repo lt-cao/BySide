@@ -46,7 +46,7 @@ jobs:
           releaseBody: |
             ## Tải bộ cài / Installers
             - Windows x64: `BySide_*_x64-setup.exe` (React + Rust/Tauri).
-            - macOS Intel và Apple Silicon: `BySide_*_universal.dmg` (SwiftUI + AppKit).
+            - macOS Intel và Apple Silicon: `BySide_*_universal.dmg` (SwiftUI + AppKit UI, Rust core).
 
             ## macOS
             - Giao diện Swift đã duyệt, thanh công cụ nổi và ảnh tràn vùng tiêu đề.
